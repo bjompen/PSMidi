@@ -44,8 +44,10 @@ task Compile_Module {
     New-Item -Name $PSM1Name -Path $OutputPath -ItemType File -Force 
     $PSM1Path = (Join-Path -Path $OutputPath -ChildPath $PSM1Name)
     
+
     $PSD1Name = "$ModuleName.psd1"
-    New-Item -Name $PSD1Name -Path $OutputPath -ItemType File -Force 
+    # New-Item -Name $PSD1Name -Path $OutputPath -ItemType File -Force 
+    Copy-Item "$ModuleSourcePath\$PSD1Name" -Destination $OutputPath
     $PSD1Path = (Join-Path -Path $OutputPath -ChildPath $PSD1Name)
 
     $ExportedFunctionList = [System.Collections.Generic.List[string]]::new()
@@ -94,8 +96,7 @@ task Compile_Module {
     }
     
     # Manifest
-    Update-ModuleManifest -Path "$ModuleSourcePath\$ModuleName.psd1" -ModuleVersion $Version -FunctionsToExport $ExportedFunctionList
-    Copy-Item -Path "$ModuleSourcePath\$ModuleName.psd1" -Destination $PSD1Path 
+    Update-ModuleManifest -Path "$PSD1Path" -ModuleVersion $Version -FunctionsToExport $ExportedFunctionList
 }
 
 

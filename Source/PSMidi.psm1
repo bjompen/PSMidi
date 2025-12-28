@@ -1,4 +1,4 @@
-#Requires -Modules @{ ModuleName="AzAuth"; ModuleVersion="2.2.2" }
+#Requires -Modules @{ ModuleName = 'WindowsMidiServices'; ModuleVersion = '0.0.1' }
 
 # import classes
 foreach ($file in (Get-ChildItem "$PSScriptRoot\Classes\*.ps1")) {

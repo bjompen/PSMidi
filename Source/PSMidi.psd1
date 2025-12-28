@@ -117,7 +117,7 @@ PrivateData = @{
         # RequireLicenseAcceptance = $false
 
         # External dependent modules of this module
-            ExternalModuleDependencies = @(@{ModuleName = 'WindowsMidiServices'; GUID = 'd5a61bed-e196-4171-b6a4-6e6021be63db'; ModuleVersion = '0.0.1'; })
+            ExternalModuleDependencies = @('WindowsMidiServices')
         } # End of PSData hashtable
 
     } # End of PrivateData hashtable
