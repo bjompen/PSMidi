@@ -54,7 +54,7 @@ Function New-PSMidiMessage {
     [uint]$messageData = ($Velocity -shl 16) -bor $AttributeData
 
     [Microsoft.Windows.Devices.Midi2.Messages.MidiMessageBuilder]::BuildMidi2ChannelVoiceMessage(
-        ((Get-Date).ToFileTimeUtc()),
+        0,
         [Microsoft.Windows.Devices.Midi2.MidiGroup]::new($Group),
         $MessageStatus,
         [Microsoft.Windows.Devices.Midi2.MidiChannel]::new($MidiChannel),
