@@ -1,4 +1,4 @@
-Function Get-PSNoteIndexFromNoteName {
+Function Get-NoteIndexFromNoteName {
     [CmdletBinding()]
     Param(
         [Parameter()]

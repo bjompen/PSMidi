@@ -29,3 +29,21 @@ Class Chord {
                 ([int]$Matches['Octave'] + 2) * 12)
     }
 }
+
+class BPM {
+    [double] $MilliSeconds
+    [double] $Ticks
+    [int] $BPM
+
+    BPM([double] $MilliSeconds) {
+        $this.MilliSeconds = $MilliSeconds
+        $this.Ticks = $MilliSeconds * 10000
+        $this.BPM = [math]::Round(60000 / $MilliSeconds)
+    }
+
+    BPM([int] $BPM) {
+        $this.MilliSeconds = [math]::Round(60000 / $BPM)
+        $this.Ticks = $this.MilliSeconds * 10000
+        $this.BPM = $BPM
+    }
+}
