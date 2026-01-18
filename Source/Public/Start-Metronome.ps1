@@ -6,7 +6,10 @@ function Start-Metronome {
         [BPM]$Tempo,
 
         [Parameter(Mandatory)]
-        [scriptblock]$ScriptBlock
+        [scriptblock]$ScriptBlock,
+
+        [Parameter()]
+        [int]$Beat = 4
     )
 
     begin {}
@@ -28,11 +31,25 @@ function Start-Metronome {
             $nextTick = $nextTick.AddTicks($BPMSeconds)
 
             $powershell.Invoke()
+            
+            Write-Verbose "Current Beat: $script:currentBeat"
+            Write-Verbose "Total Beat: $script:totalBeat"
+            Write-Verbose "Bar: $script:bar"
+            $script:currentBeat++
+            $script:totalBeat++
+            if ($script:currentBeat -gt $Beat) {
+                $script:currentBeat = 1
+                $script:bar++
+            }
         }
     }
 
     clean {
         $powerShell.Stop()
         $powerShell.Dispose()
+        
+        $script:currentBeat = 1
+        $script:totalBeat = 1
+        $script:bar = 1
     }
 }

@@ -1,5 +1,9 @@
 #Requires -Modules @{ ModuleName = 'WindowsMidiServices'; ModuleVersion = '0.0.1' }
 
+$script:currentBeat = 1
+$script:totalBeat = 1
+$script:bar = 1
+
 # import classes
 foreach ($file in (Get-ChildItem "$PSScriptRoot\Classes\*.ps1")) {
     try {
