@@ -4,6 +4,9 @@ $script:currentBeat = 1
 $script:totalBeat = 1
 $script:bar = 1
 
+$script:MessageQueue = [System.Collections.Generic.Dictionary[int, Microsoft.Windows.Devices.Midi2.MidiMessage64[]]]::new(10000)
+$script:MessageEvery = [System.Collections.Generic.Dictionary[int, Microsoft.Windows.Devices.Midi2.MidiMessage64[]]]::new(10)
+
 # import classes
 foreach ($file in (Get-ChildItem "$PSScriptRoot\Classes\*.ps1")) {
     try {
