@@ -43,10 +43,10 @@ function Start-PSMidiQueue {
                     $NT = $NT.AddTicks($BPMS)
                     
                     if ($MQ.ContainsKey($script:totalBeat)) {
-                        $MQ.Item($script:totalBeat) | ForEach-Object { Send-PSMidiMessage -Connection $CONN -Message $_ }
+                        $MQ.Item($script:totalBeat) | Sort-Object -Property Word0 -Descending | ForEach-Object { Send-PSMidiMessage -Connection $CONN -Message $_ }
                     }
                     if ($ME.ContainsKey($script:currentBeat)) {
-                        $ME.Item($script:currentBeat) | ForEach-Object { Send-PSMidiMessage -Connection $CONN -Message $_ }
+                        $ME.Item($script:currentBeat) | Sort-Object -Property Word0 -Descending | ForEach-Object { Send-PSMidiMessage -Connection $CONN -Message $_ }
                     }
                     
                     $script:currentBeat++
