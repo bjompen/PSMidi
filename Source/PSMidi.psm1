@@ -9,6 +9,10 @@ $script:MessageEvery = [System.Collections.Generic.Dictionary[int, Microsoft.Win
 
 $script:QueuePlayThread = (New-Guid).Guid
 
+# WindowsInput borrowed and compiled from https://github.com/michaelnoonan/inputsimulator
+$null = Add-Type -Path "$PSScriptRoot\Resources\WindowsInput.dll"
+$script:AlphabetKeys = Get-Content $PSScriptRoot\Resources\KeyMap_sv-SE.csv | ConvertFrom-Csv -Delimiter ';'
+
 # import classes
 foreach ($file in (Get-ChildItem "$PSScriptRoot\Classes\*.ps1")) {
     try {

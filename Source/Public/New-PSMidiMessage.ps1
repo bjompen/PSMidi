@@ -10,7 +10,7 @@ Function New-PSMidiMessage {
 
         [Parameter(ParameterSetName = 'Note')]
         [Parameter(ParameterSetName = 'Pitch')]
-        [ValidateRange(0, 9)]
+        [ValidateRange(-2, 9)]
         [int]$Octave = 3, 
 
         [Parameter(ParameterSetName = 'Note')]
