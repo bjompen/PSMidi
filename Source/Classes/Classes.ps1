@@ -16,7 +16,7 @@ Class Chord {
     hidden [int] $AltMidi
     [int] $MidiNote
 
-    Chord($Chord) {
+    Chord([string] $Chord) {
         $null = $Chord -match '^(?<BaseNote>[a-gA-G])(?<Alt>[#b]?)(?<Octave>(-?[1-2]|[0-8])$)'
 
         $this.BaseChord = $Matches['BaseNote'].ToUpper()
@@ -27,6 +27,21 @@ Class Chord {
                 ([NoteIndex]$Matches['BaseNote'].ToUpper()).value__ + $this.AltMidi
             ) + (
                 ([int]$Matches['Octave'] + 2) * 12)
+    }
+
+    Chord([int] $MidiIndexNote) {
+        if (($MidiIndexNote % 12) -in @(0, 2, 4, 5, 7, 9,11)) {
+            $this.BaseChord = [NoteIndex]($MidiIndexNote % 12)
+            $this.Alt = [string]::Empty
+            $this.AltMidi = 0
+        }
+        else {
+            $this.BaseChord = [NoteIndex](($MidiIndexNote % 12) - 1)
+            $this.Alt = '#'
+            $this.AltMidi = 1
+        }
+        $this.Octave = [math]::Floor(($MidiIndexNote / 12) - 2)
+        $this.MidiNote = $MidiIndexNote
     }
 }
 
