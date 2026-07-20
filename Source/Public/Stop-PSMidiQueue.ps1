@@ -20,7 +20,7 @@ function Stop-PSMidiQueue {
         }
 
         if ($null -ne $script:QueueConnection) {
-            SendPSMidiAllNoteOffInternal -Connection $script:QueueConnection
+            SendQueueAllNoteOffInternal -Connection $script:QueueConnection
             $script:QueueConnection = $null
         }
 

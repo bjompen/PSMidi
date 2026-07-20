@@ -60,9 +60,17 @@ function Add-PSMidiQueueMessage {
         AddQueueMessageAtTick -Tick ([long]$OnTotalBeat * $ticksPerQuarterNote) -Message $Message
     }
     elseif ($PSCmdlet.ParameterSetName -eq 'Every') {
-        $script:RecurringQueueRules.Add([PSCustomObject]@{
-            Beat = $Every
-            Message = $Message
-        })
+        AddQueueAllNoteOffMessages -Message $Message
+
+        [System.Threading.Monitor]::Enter($script:QueueSync)
+        try {
+            $null = $script:RecurringQueueRules.Add([PSCustomObject]@{
+                Beat = $Every
+                Message = $Message
+            })
+        }
+        finally {
+            [System.Threading.Monitor]::Exit($script:QueueSync)
+        }
     }
 }

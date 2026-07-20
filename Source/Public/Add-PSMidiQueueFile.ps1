@@ -1,28 +1,41 @@
-function Add-PSMidiFileToQueue {
-    [CmdletBinding()]
+function Add-PSMidiQueueFile {
+    [CmdletBinding(DefaultParameterSetName = 'Path')]
     param (
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory, ParameterSetName = 'Path')]
         [string]$Path,
+
+        [Parameter(Mandatory, ParameterSetName = 'FileObject', ValueFromPipeline)]
+        [PSObject[]]$FileObject,
 
         [Parameter()]
         [ValidateRange(0, 15)]
         [int]$Group = 0
     )
 
-    begin {}
+    begin {
+        $pipelineFileEvents = [System.Collections.Generic.List[object]]::new()
+    }
 
-    process {}
+    process {
+        if ($PSCmdlet.ParameterSetName -eq 'FileObject') {
+            foreach ($midiEvent in $FileObject) {
+                $null = $pipelineFileEvents.Add($midiEvent)
+            }
+        }
+    }
 
     end {
-        $events = @(Get-PSMidiFile -Path $Path)
+        $events = if ($PSCmdlet.ParameterSetName -eq 'Path') { @(Get-PSMidiFile -Path $Path) } else { @($pipelineFileEvents) }
         if (-not $events) {
-            Write-Error "No MIDI events were read from '$Path'."
+            $inputDescription = if ($PSCmdlet.ParameterSetName -eq 'Path') { "'$Path'" } else { 'the supplied FileObject input' }
+            Write-Error "No MIDI events were read from $inputDescription."
             return
         }
 
         $fileMetadata = $events | Select-Object -First 1
         if (-not $fileMetadata.TicksPerQuarterNote) {
-            Write-Error "MIDI files that use SMPTE timing are not supported by the queue. '$Path' must use ticks per quarter note."
+            $inputDescription = if ($PSCmdlet.ParameterSetName -eq 'Path') { "'$Path'" } else { 'the supplied FileObject input' }
+            Write-Error "MIDI files that use SMPTE timing are not supported by the queue. $inputDescription must use ticks per quarter note."
             return
         }
 
@@ -40,7 +53,7 @@ function Add-PSMidiFileToQueue {
             return
         }
 
-        $script:QueueMetadata.LastSourcePath = (Resolve-Path -Path $Path -ErrorAction Stop).ProviderPath
+        $script:QueueMetadata.LastSourcePath = if ($PSCmdlet.ParameterSetName -eq 'Path') { (Resolve-Path -Path $Path -ErrorAction Stop).ProviderPath } else { $fileMetadata.FilePath }
 
         foreach ($scheduledEvent in $scheduledEvents) {
             [uint32]$velocity = if ($scheduledEvent.EventType -eq 'NoteOff') {

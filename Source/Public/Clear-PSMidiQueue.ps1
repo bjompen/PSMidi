@@ -4,13 +4,17 @@ function Clear-PSMidiQueue {
         [ValidateSet('MessageQueue', 'RecurringQueueRules', 'TempoMap', 'QueueMetadata', 'QueueState', 'MessageEvery', 'MidiMessageQueue', 'MidiQueueMetadata', 'All')]
         [string]$Queue = 'All'
     )
+
+
     switch ($Queue) {
         'MessageQueue' {
             $script:MessageQueue.Clear()
             $script:QueueMetadata.ScheduledEventCount = 0
             $script:QueueMetadata.DurationTicks = 0
         }
-        'RecurringQueueRules' { $script:RecurringQueueRules.Clear() }
+        'RecurringQueueRules' {
+            $script:RecurringQueueRules.Clear()
+        }
         'TempoMap' {
             $script:QueueTempoMap.Clear()
             $script:QueueMetadata.TempoEventCount = 0
@@ -23,7 +27,9 @@ function Clear-PSMidiQueue {
             $script:QueueMetadata.DurationTicks = 0
         }
         'QueueState' { ResetQueueTransportState }
-        'MessageEvery' { $script:RecurringQueueRules.Clear() }
+        'MessageEvery' {
+            $script:RecurringQueueRules.Clear()
+        }
         'MidiMessageQueue' {
             $script:MessageQueue.Clear()
             $script:QueueMetadata.ScheduledEventCount = 0
@@ -37,6 +43,7 @@ function Clear-PSMidiQueue {
             $script:QueueMetadata.DurationTicks = 0
         }
         'All' {
+            $script:QueueAllNoteOffMessages.Clear()
             $script:MessageQueue.Clear()
             $script:RecurringQueueRules.Clear()
             $script:QueueTempoMap.Clear()
@@ -51,5 +58,4 @@ function Clear-PSMidiQueue {
             ResetQueueTransportState
         }
     }
-    
 }

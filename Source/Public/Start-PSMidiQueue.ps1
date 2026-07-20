@@ -44,60 +44,71 @@ function Start-PSMidiQueue {
         $script:QueueConnection = $Connection
         ResetQueueTransportState
 
-        $effectiveTempoMap = [System.Collections.Generic.SortedDictionary[long, int]]::new()
-        $effectiveTempoMap.Add(0, $Tempo.TempoMicroseconds)
-        foreach ($tempoTick in $script:QueueTempoMap.Keys) {
-            if ($effectiveTempoMap.ContainsKey($tempoTick)) {
-                $effectiveTempoMap[$tempoTick] = $script:QueueTempoMap[$tempoTick]
-            }
-            else {
-                $effectiveTempoMap.Add($tempoTick, $script:QueueTempoMap[$tempoTick])
-            }
-        }
-
         $null = Start-ThreadJob -Name $script:QueuePlayThread -ScriptBlock {
-            $scheduledTicks = @($using:MessageQueue.Keys)
             $scheduledQueue = $using:MessageQueue
-            $recurringQueueRules = @($using:RecurringQueueRules)
-            $tempoMap = $using:effectiveTempoMap
+            $recurringQueueRules = $using:RecurringQueueRules
+            $tempoMap = $using:QueueTempoMap
             $tempoContext = $using:Tempo
             $beatCount = $using:Beat
             $connection = $using:queueConnection
             $queueState = $using:QueueState
+            $queueSync = $using:QueueSync
             $queueStart = [datetime]::FromFileTime([Microsoft.Windows.Devices.Midi2.MidiClock]::Now)
-
-            [int]$queueTickIndex = 0
-            [long]$nextRecurringTick = if ($recurringQueueRules.Count -gt 0) { $tempoContext.BeatNumberToTick(1) } else { [long]::MaxValue }
             [long]$currentTick = 0
-            [long]$currentBeatNumber = 1
             $queueState.IsRunning = $true
             $queueState.BeatCount = $beatCount
             $queueState.TicksPerQuarterNote = $tempoContext.TicksPerQuarterNote
             $queueState.DefaultTempoMicroseconds = $tempoContext.TempoMicroseconds
 
-            $tempoTicks = @($tempoMap.Keys)
-            [int]$tempoIndex = 0
-            [double]$currentTempoMicroseconds = $tempoMap[0]
+            [double]$currentTempoMicroseconds = if ($tempoMap.ContainsKey(0L)) { $tempoMap[0L] } else { $tempoContext.TempoMicroseconds }
+            [long]$lastAppliedTempoTick = -1L
             [datetime]$dueTime = $queueStart
 
-            while ($queueTickIndex -lt $scheduledTicks.Count -or $nextRecurringTick -ne [long]::MaxValue) {
-                [long]$nextQueuedTick = if ($queueTickIndex -lt $scheduledTicks.Count) { $scheduledTicks[$queueTickIndex] } else { [long]::MaxValue }
+            while ($true) {
+                [long]$nextQueuedTick = [long]::MaxValue
+                [bool]$hasRecurringRules = $false
+                [System.Threading.Monitor]::Enter($queueSync)
+                try {
+                    foreach ($queuedTickKey in ($scheduledQueue.Keys | Sort-Object)) {
+                        [long]$queuedTick = $queuedTickKey
+                        if ($queuedTick -ge $currentTick) {
+                            $nextQueuedTick = $queuedTick
+                            break
+                        }
+                    }
+
+                    $hasRecurringRules = $recurringQueueRules.Count -gt 0
+                }
+                finally {
+                    [System.Threading.Monitor]::Exit($queueSync)
+                }
+
+                [long]$nextRecurringTick = if ($hasRecurringRules) { ([math]::Floor($currentTick / $tempoContext.TicksPerQuarterNote) + 1) * $tempoContext.TicksPerQuarterNote } else { [long]::MaxValue }
                 [long]$nextScheduledTick = [math]::Min($nextQueuedTick, $nextRecurringTick)
 
                 if ($nextScheduledTick -eq [long]::MaxValue) {
-                    break
+                    [System.Threading.Thread]::Sleep(5)
+                    continue
                 }
 
                 [long]$timingCursorTick = $currentTick
-                while ($tempoIndex + 1 -lt $tempoTicks.Count -and $tempoTicks[$tempoIndex + 1] -le $nextScheduledTick) {
-                    [long]$tempoChangeTick = $tempoTicks[$tempoIndex + 1]
+                [long[]]$tempoChangeTicks = @()
+                [System.Threading.Monitor]::Enter($queueSync)
+                try {
+                    $tempoChangeTicks = @($tempoMap.Keys | Where-Object { ([long]$_ -gt $lastAppliedTempoTick) -and ([long]$_ -le $nextScheduledTick) } | Sort-Object)
+                }
+                finally {
+                    [System.Threading.Monitor]::Exit($queueSync)
+                }
+
+                foreach ($tempoChangeTick in $tempoChangeTicks) {
                     [long]$segmentTicks = $tempoChangeTick - $timingCursorTick
                     if ($segmentTicks -gt 0) {
                         $dueTime = $dueTime.AddTicks($tempoContext.TickDeltaToClockTicks($segmentTicks, $currentTempoMicroseconds))
                     }
 
-                    $tempoIndex++
-                    $currentTempoMicroseconds = $tempoMap[$tempoTicks[$tempoIndex]]
+                    $currentTempoMicroseconds = $tempoMap[$tempoChangeTick]
+                    $lastAppliedTempoTick = $tempoChangeTick
                     $timingCursorTick = $tempoChangeTick
                 }
 
@@ -117,22 +128,39 @@ function Start-PSMidiQueue {
                 }
 
                 if ($nextQueuedTick -eq $nextScheduledTick) {
-                    $scheduledQueue[$nextQueuedTick] | Sort-Object -Property Word0 | ForEach-Object {
+                    [Microsoft.Windows.Devices.Midi2.MidiMessage64[]]$queuedMessages = @()
+                    [System.Threading.Monitor]::Enter($queueSync)
+                    try {
+                        if ($scheduledQueue.ContainsKey($nextQueuedTick)) {
+                            $queuedMessages = @($scheduledQueue[$nextQueuedTick])
+                            $scheduledQueue.Remove($nextQueuedTick)
+                        }
+                    }
+                    finally {
+                        [System.Threading.Monitor]::Exit($queueSync)
+                    }
+
+                    $queuedMessages | Sort-Object -Property Word0 | ForEach-Object {
                         Send-MidiMessage -Connection $connection -Words $($_.Word0, $_.Word1)
                     }
-                    $queueTickIndex++
                 }
 
                 if ($nextRecurringTick -eq $nextScheduledTick) {
-                    [int]$currentBeat = (($currentBeatNumber - 1) % $beatCount) + 1
-                    $recurringQueueRules | Where-Object Beat -eq $currentBeat | ForEach-Object {
+                    [int]$currentBeat = (([math]::Floor($nextScheduledTick / $tempoContext.TicksPerQuarterNote)) % $beatCount) + 1
+                    [object[]]$recurringRulesForBeat = @()
+                    [System.Threading.Monitor]::Enter($queueSync)
+                    try {
+                        $recurringRulesForBeat = @($recurringQueueRules | Where-Object Beat -eq $currentBeat)
+                    }
+                    finally {
+                        [System.Threading.Monitor]::Exit($queueSync)
+                    }
+
+                    $recurringRulesForBeat | ForEach-Object {
                         $_.Message | Sort-Object -Property Word0 | ForEach-Object {
                             Send-MidiMessage -Connection $connection -Words $($_.Word0, $_.Word1)
                         }
                     }
-
-                    $currentBeatNumber++
-                    $nextRecurringTick += $tempoContext.TicksPerQuarterNote
                 }
 
                 $currentTick = $nextScheduledTick

@@ -1,8 +1,8 @@
 function Get-PSMidiQueue {
     param (
         [Parameter()]
-        [ValidateSet('MessageQueue', 'RecurringQueueRules', 'TempoMap', 'QueueMetadata', 'QueueState', 'MessageEvery', 'MidiMessageQueue', 'MidiQueueMetadata')]
-        [string]$Queue = 'MessageQueue'
+        [ValidateSet('MessageQueue', 'RecurringQueueRules', 'TempoMap', 'QueueMetadata', 'QueueState', 'All')]
+        [string]$Queue = 'All'
     )
     switch ($Queue) {
         'MessageQueue' { $script:MessageQueue }
@@ -10,8 +10,14 @@ function Get-PSMidiQueue {
         'TempoMap' { $script:QueueTempoMap }
         'QueueMetadata' { [PSCustomObject]$script:QueueMetadata }
         'QueueState' { [PSCustomObject]$script:QueueState }
-        'MessageEvery' { $script:RecurringQueueRules }
-        'MidiMessageQueue' { $script:MessageQueue }
-        'MidiQueueMetadata' { [PSCustomObject]$script:QueueMetadata }
+        'All' {
+            [PSCustomObject]@{
+                'MessageQueue' = $script:MessageQueue
+                'RecurringQueueRules' = $script:RecurringQueueRules
+                'TempoMap' = $script:QueueTempoMap
+                'QueueMetadata' = [PSCustomObject]$script:QueueMetadata
+                'QueueState' = [PSCustomObject]$script:QueueState
+            }
+        }
     }
 }

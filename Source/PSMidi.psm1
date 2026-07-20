@@ -7,6 +7,7 @@ $script:bar = 1
 $script:MessageQueue = [System.Collections.Generic.SortedDictionary[long, Microsoft.Windows.Devices.Midi2.MidiMessage64[]]]::new()
 $script:RecurringQueueRules = [System.Collections.Generic.List[object]]::new()
 $script:QueueTempoMap = [System.Collections.Generic.SortedDictionary[long, int]]::new()
+$script:QueueAllNoteOffMessages = [System.Collections.Generic.Dictionary[string, Microsoft.Windows.Devices.Midi2.MidiMessage64]]::new()
 $script:QueueMetadata = [ordered]@{
     LastSourcePath      = $null
     TicksPerQuarterNote = $null
@@ -27,6 +28,7 @@ $script:QueueState = [hashtable]::Synchronized(@{
 
 $script:QueuePlayThread = (New-Guid).Guid
 $script:QueueConnection = $null
+$script:QueueSync = [System.Object]::new()
 
 # WindowsInput borrowed and compiled from https://github.com/michaelnoonan/inputsimulator
 $null = Add-Type -Path "$PSScriptRoot\Resources\WindowsInput.dll"
