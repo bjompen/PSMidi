@@ -4,10 +4,29 @@ $script:currentBeat = 1
 $script:totalBeat = 1
 $script:bar = 1
 
-$script:MessageQueue = [System.Collections.Generic.Dictionary[int, Microsoft.Windows.Devices.Midi2.MidiMessage64[]]]::new(10000)
-$script:MessageEvery = [System.Collections.Generic.Dictionary[int, Microsoft.Windows.Devices.Midi2.MidiMessage64[]]]::new(10)
+$script:MessageQueue = [System.Collections.Generic.SortedDictionary[long, Microsoft.Windows.Devices.Midi2.MidiMessage64[]]]::new()
+$script:RecurringQueueRules = [System.Collections.Generic.List[object]]::new()
+$script:QueueTempoMap = [System.Collections.Generic.SortedDictionary[long, int]]::new()
+$script:QueueMetadata = [ordered]@{
+    LastSourcePath      = $null
+    TicksPerQuarterNote = $null
+    TempoEventCount     = 0
+    ScheduledEventCount = 0
+    DurationTicks       = 0
+}
+$script:QueueState = [hashtable]::Synchronized(@{
+    CurrentTick             = 0L
+    CurrentBeat             = 1
+    TotalBeat               = 1
+    Bar                     = 1
+    BeatCount               = 4
+    TicksPerQuarterNote     = 960
+    DefaultTempoMicroseconds = 500000
+    IsRunning               = $false
+})
 
 $script:QueuePlayThread = (New-Guid).Guid
+$script:QueueConnection = $null
 
 # WindowsInput borrowed and compiled from https://github.com/michaelnoonan/inputsimulator
 $null = Add-Type -Path "$PSScriptRoot\Resources\WindowsInput.dll"

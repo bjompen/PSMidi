@@ -49,16 +49,48 @@ class BPM {
     [double] $MilliSeconds
     [double] $Ticks
     [int] $BPM
+    [int] $TempoMicroseconds
+    [int] $TicksPerQuarterNote
+
+    hidden [void] SetTiming([double] $MilliSeconds, [int] $TicksPerQuarterNote) {
+        $this.MilliSeconds = $MilliSeconds
+        $this.Ticks = [math]::Round($MilliSeconds * 10000)
+        $this.BPM = [math]::Round(60000 / $MilliSeconds)
+        $this.TempoMicroseconds = [math]::Round($MilliSeconds * 1000)
+        $this.TicksPerQuarterNote = $TicksPerQuarterNote
+    }
 
     BPM([double] $MilliSeconds) {
-        $this.MilliSeconds = $MilliSeconds
-        $this.Ticks = $MilliSeconds * 10000
-        $this.BPM = [math]::Round(60000 / $MilliSeconds)
+        $this.SetTiming($MilliSeconds, 960)
+    }
+
+    BPM([double] $MilliSeconds, [int] $TicksPerQuarterNote) {
+        $this.SetTiming($MilliSeconds, $TicksPerQuarterNote)
     }
 
     BPM([int] $BPM) {
-        $this.MilliSeconds = [math]::Round(60000 / $BPM)
-        $this.Ticks = $this.MilliSeconds * 10000
+        $this.SetTiming([math]::Round(60000 / $BPM, 3), 960)
         $this.BPM = $BPM
+    }
+
+    BPM([int] $BPM, [int] $TicksPerQuarterNote) {
+        $this.SetTiming([math]::Round(60000 / $BPM, 3), $TicksPerQuarterNote)
+        $this.BPM = $BPM
+    }
+
+    [long] BeatNumberToTick([long] $BeatNumber) {
+        return [long]($BeatNumber * $this.TicksPerQuarterNote)
+    }
+
+    [long] BeatsToTicks([double] $BeatCount) {
+        return [long][math]::Round($BeatCount * $this.TicksPerQuarterNote)
+    }
+
+    [long] TickDeltaToClockTicks([long] $TickDelta) {
+        return $this.TickDeltaToClockTicks($TickDelta, $this.TempoMicroseconds)
+    }
+
+    [long] TickDeltaToClockTicks([long] $TickDelta, [double] $TempoMicroseconds) {
+        return [long][math]::Round(($TickDelta * $TempoMicroseconds * 10) / $this.TicksPerQuarterNote)
     }
 }
