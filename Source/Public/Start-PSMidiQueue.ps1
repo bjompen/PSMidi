@@ -117,25 +117,19 @@ function Start-PSMidiQueue {
                 }
 
                 if ($nextQueuedTick -eq $nextScheduledTick) {
-                    $scheduledQueue[$nextQueuedTick] |
-                        Sort-Object -Property Word0 |
-                        ForEach-Object {
-                            Send-MidiMessage -Connection $connection -Words $($_.Word0, $_.Word1)
-                        }
+                    $scheduledQueue[$nextQueuedTick] | Sort-Object -Property Word0 | ForEach-Object {
+                        Send-MidiMessage -Connection $connection -Words $($_.Word0, $_.Word1)
+                    }
                     $queueTickIndex++
                 }
 
                 if ($nextRecurringTick -eq $nextScheduledTick) {
                     [int]$currentBeat = (($currentBeatNumber - 1) % $beatCount) + 1
-                    $recurringQueueRules |
-                        Where-Object Beat -eq $currentBeat |
-                        ForEach-Object {
-                            $_.Message |
-                                Sort-Object -Property Word0 |
-                                ForEach-Object {
-                                    Send-MidiMessage -Connection $connection -Words $($_.Word0, $_.Word1)
-                                }
+                    $recurringQueueRules | Where-Object Beat -eq $currentBeat | ForEach-Object {
+                        $_.Message | Sort-Object -Property Word0 | ForEach-Object {
+                            Send-MidiMessage -Connection $connection -Words $($_.Word0, $_.Word1)
                         }
+                    }
 
                     $currentBeatNumber++
                     $nextRecurringTick += $tempoContext.TicksPerQuarterNote

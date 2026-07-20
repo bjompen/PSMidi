@@ -31,17 +31,9 @@ function Add-PSMidiFileToQueue {
             return
         }
 
-        $tempoEvents = @(
-            $events |
-                Where-Object EventType -eq 'SetTempo' |
-                Sort-Object AbsoluteTick, TrackNumber
-        )
+        $tempoEvents = @($events | Where-Object EventType -eq 'SetTempo' | Sort-Object AbsoluteTick, TrackNumber)
 
-        $scheduledEvents = @(
-            $events |
-                Where-Object EventType -in @('NoteOn', 'NoteOff') |
-                Sort-Object AbsoluteTick, TrackNumber, Channel, Note, Velocity
-        )
+        $scheduledEvents = @($events | Where-Object EventType -in @('NoteOn', 'NoteOff') | Sort-Object AbsoluteTick, TrackNumber, Channel, Note, Velocity)
 
         if (-not $scheduledEvents) {
             Write-Error "No note events were found in '$Path'."
