@@ -1,5 +1,6 @@
 function Stop-PSMidiQueue {
     [CmdletBinding()]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'Queue stop should not prompt for confirmation.')]
     param ()
     
     begin {}
@@ -8,17 +9,21 @@ function Stop-PSMidiQueue {
     
     end {
         try {
-            Get-Job -Name $script:QueuePlayThread -ErrorAction Stop | Stop-Job
-            Get-Job -Name $script:QueuePlayThread -ErrorAction Stop | Remove-Job
+            $job = Get-Job -Name $script:QueuePlayThread -ErrorAction Stop
+            if ($job.State -eq 'Running' -or $job.State -eq 'NotStarted') {
+                $job | Stop-Job
+            }
+            $job | Remove-Job
         }
         catch { 
             Write-Error "Failed to stop PSMidiQueue. Is it started?"
         }
-    }
 
-    clean {
-        $script:currentBeat = 1
-        $script:totalBeat = 1
-        $script:bar = 1
+        if ($null -ne $script:QueueConnection) {
+            SendQueueAllNoteOffInternal -Connection $script:QueueConnection
+            $script:QueueConnection = $null
+        }
+
+        ResetQueueTransportState
     }
 }

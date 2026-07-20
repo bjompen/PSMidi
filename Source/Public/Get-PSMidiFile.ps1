@@ -279,8 +279,8 @@ Function Get-PSMidiFile {
                             $ev.EventType = 'SequenceNumber'
                             $ev.Value     = if ($metaLen -ge 2) { ($metaData[0] -shl 8) -bor $metaData[1] } else { 0 }
                         }
-                        0x01 { $ev.EventType = 'TextEvent';      $ev.Text = [System.Text.Encoding]::Latin1.GetString($metaData) }
-                        0x02 { $ev.EventType = 'Copyright';      $ev.Text = [System.Text.Encoding]::Latin1.GetString($metaData) }
+                        0x01 { $ev.EventType = 'TextEvent';      if ($null -eq $metaData) {[string]::Empty} else {$ev.Text = [System.Text.Encoding]::Latin1.GetString($metaData) }}
+                        0x02 { $ev.EventType = 'Copyright';      if ($null -eq $metaData) {[string]::Empty} else {$ev.Text = [System.Text.Encoding]::Latin1.GetString($metaData) }}
                         0x03 {
                             $trackName    = [System.Text.Encoding]::Latin1.GetString($metaData)
                             $ev.EventType = 'TrackName'
@@ -293,9 +293,9 @@ Function Get-PSMidiFile {
                             $ev.Text           = $instrumentName
                             $ev.InstrumentName = $instrumentName
                         }
-                        0x05 { $ev.EventType = 'Lyrics';    $ev.Text = [System.Text.Encoding]::Latin1.GetString($metaData) }
-                        0x06 { $ev.EventType = 'Marker';    $ev.Text = [System.Text.Encoding]::Latin1.GetString($metaData) }
-                        0x07 { $ev.EventType = 'CuePoint';  $ev.Text = [System.Text.Encoding]::Latin1.GetString($metaData) }
+                        0x05 { $ev.EventType = 'Lyrics';    if ($null -eq $metaData) {[string]::Empty} else {$ev.Text = [System.Text.Encoding]::Latin1.GetString($metaData) }}
+                        0x06 { $ev.EventType = 'Marker';    if ($null -eq $metaData) {[string]::Empty} else {$ev.Text = [System.Text.Encoding]::Latin1.GetString($metaData) }}
+                        0x07 { $ev.EventType = 'CuePoint';  if ($null -eq $metaData) {[string]::Empty} else {$ev.Text = [System.Text.Encoding]::Latin1.GetString($metaData) }}
                         0x20 { $ev.EventType = 'ChannelPrefix'; $ev.Channel = $metaData[0] }
                         0x21 { $ev.EventType = 'MidiPort';      $ev.Value   = $metaData[0] }
                         0x2F { $ev.EventType = 'EndOfTrack' }
