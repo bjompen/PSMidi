@@ -2,7 +2,7 @@ function Start-PSMidiQueue {
     [CmdletBinding()]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'Queue startup should not prompt for confirmation.')]
     param (
-        [Parameter(Mandatory)]
+        [Parameter()]
         [Alias('BPM')]
         [BPM]$Tempo,
 
@@ -19,12 +19,37 @@ function Start-PSMidiQueue {
     process {}
 
     end {
-        if (-not (SetQueueTicksPerQuarterNote -TicksPerQuarterNote $Tempo.TicksPerQuarterNote)) {
+        if ($script:MessageQueue.Count -eq 0 -and $script:RecurringQueueRules.Count -eq 0) {
+            Write-Error 'No queue events have been added.'
             return
         }
 
-        if ($script:MessageQueue.Count -eq 0 -and $script:RecurringQueueRules.Count -eq 0) {
-            Write-Error 'No queue events have been added.'
+        [int]$effectiveTicksPerQuarterNote = if ($script:QueueMetadata.TicksPerQuarterNote) {
+            [int]$script:QueueMetadata.TicksPerQuarterNote
+        }
+        elseif ($PSBoundParameters.ContainsKey('Tempo')) {
+            [int]$Tempo.TicksPerQuarterNote
+        }
+        else {
+            [int]$script:QueueState.TicksPerQuarterNote
+        }
+
+        [BPM]$effectiveTempo = $null
+        if ($script:QueueTempoMap.Count -gt 0) {
+            [long]$firstTempoTick = ($script:QueueTempoMap.Keys | Sort-Object | Select-Object -First 1)
+            [int]$tempoMicroseconds = [int]$script:QueueTempoMap[$firstTempoTick]
+            [double]$tempoMilliseconds = [math]::Round($tempoMicroseconds / 1000.0, 3)
+            $effectiveTempo = [BPM]::new($tempoMilliseconds, $effectiveTicksPerQuarterNote)
+        }
+        elseif ($PSBoundParameters.ContainsKey('Tempo')) {
+            $effectiveTempo = $Tempo
+        }
+        else {
+            Write-Warning 'No tempo parameter and no queue tempo map found. Defaulting to 120 BPM.'
+            $effectiveTempo = [BPM]::new(120, $effectiveTicksPerQuarterNote)
+        }
+
+        if (-not (SetQueueTicksPerQuarterNote -TicksPerQuarterNote $effectiveTempo.TicksPerQuarterNote)) {
             return
         }
 
@@ -40,7 +65,7 @@ function Start-PSMidiQueue {
         }
 
         $script:QueueState.BeatCount = $Beat
-        $script:QueueState.DefaultTempoMicroseconds = $Tempo.TempoMicroseconds
+        $script:QueueState.DefaultTempoMicroseconds = $effectiveTempo.TempoMicroseconds
         $script:QueueConnection = $Connection
         ResetQueueTransportState
 
@@ -48,7 +73,7 @@ function Start-PSMidiQueue {
             $scheduledQueue = $using:MessageQueue
             $recurringQueueRules = $using:RecurringQueueRules
             $tempoMap = $using:QueueTempoMap
-            $tempoContext = $using:Tempo
+            $tempoContext = $using:effectiveTempo
             $beatCount = $using:Beat
             $connection = $using:queueConnection
             $queueState = $using:QueueState
